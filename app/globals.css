@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #0A0A0A;
+  color: white;
+  -webkit-font-smoothing: antialiased;
+}
