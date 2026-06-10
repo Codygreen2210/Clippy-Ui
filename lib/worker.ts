@@ -1,6 +1,15 @@
 const WORKER_URL = process.env.WORKER_URL!;
 const WORKER_API_KEY = process.env.WORKER_API_KEY!;
 
+export interface FaceCamBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  video_w: number;
+  video_h: number;
+}
+
 export interface ClipResult {
   index: number;
   title: string;
@@ -24,7 +33,12 @@ export interface JobStatus {
 
 export async function startJob(
   url: string,
-  options?: { maxClips?: number; minDuration?: number; maxDuration?: number }
+  options?: {
+    maxClips?: number;
+    minDuration?: number;
+    maxDuration?: number;
+    faceCamBox?: FaceCamBox | null;
+  }
 ): Promise<{ jobId: string; status: string }> {
   const res = await fetch(`${WORKER_URL}/job`, {
     method: 'POST',
