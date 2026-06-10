@@ -8,6 +8,14 @@ import { useSearchParams, useRouter } from 'next/navigation';
 
 interface Word { word: string; start: number; end: number; }
 
+interface DimGrade { grade: string; reason: string; }
+interface Breakdown {
+  hook:  DimGrade;
+  flow:  DimGrade;
+  value: DimGrade;
+  trend: DimGrade;
+}
+
 interface ClipResult {
   index: number;
   title: string;
@@ -18,6 +26,7 @@ interface ClipResult {
   duration: number;
   url: string;
   thumbnail_url?: string | null;
+  breakdown?: Breakdown | null;
   extending?: boolean;
   extend_error?: string | null;
 }
@@ -164,6 +173,63 @@ function TranscriptPanel({
   );
 }
 
+// ─── Score breakdown ──────────────────────────────────────────────────────────
+
+const DIMS: { key: keyof Breakdown; label: string }[] = [
+  { key: 'hook',  label: 'Hook'  },
+  { key: 'flow',  label: 'Flow'  },
+  { key: 'value', label: 'Value' },
+  { key: 'trend', label: 'Trend' },
+];
+
+function gradeColor(g: string) {
+  if (g.startsWith('A')) return 'text-orange-400 bg-orange-500/15 border-orange-500/25';
+  if (g.startsWith('B')) return 'text-white/70 bg-white/8 border-white/15';
+  return 'text-white/35 bg-white/5 border-white/10';
+}
+
+function ScoreBreakdown({ breakdown }: { breakdown: Breakdown }) {
+  const [active, setActive] = useState<keyof Breakdown | null>(null);
+
+  return (
+    <div className="mt-3">
+      {/* Grade badges */}
+      <div className="grid grid-cols-4 gap-1.5">
+        {DIMS.map(({ key, label }) => {
+          const dim = breakdown[key];
+          const isOpen = active === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setActive(isOpen ? null : key)}
+              className={[
+                'rounded-lg border px-2 py-1.5 text-center transition-colors',
+                gradeColor(dim.grade),
+                isOpen ? 'ring-1 ring-orange-500/40' : '',
+              ].join(' ')}
+            >
+              <div className="text-[10px] font-medium text-white/40">{label}</div>
+              <div className="text-sm font-black leading-tight">{dim.grade}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Expanded reason */}
+      {active && (
+        <div className="mt-2 rounded-lg border border-white/8 bg-black/30 px-3 py-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-400">
+            {active.charAt(0).toUpperCase() + active.slice(1)} · {breakdown[active].grade}
+          </span>
+          <p className="mt-0.5 text-xs leading-relaxed text-white/60">
+            {breakdown[active].reason}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Single clip card ─────────────────────────────────────────────────────────
 
 function ClipCard({
@@ -213,6 +279,13 @@ function ClipCard({
           <p className="mt-1 text-xs italic text-white/40 line-clamp-2">"{clip.hook}"</p>
         </div>
       </div>
+
+      {/* Score breakdown */}
+      {clip.breakdown && (
+        <div className="px-4">
+          <ScoreBreakdown breakdown={clip.breakdown} />
+        </div>
+      )}
 
       {/* Body */}
       <div className="px-4 pb-4">
