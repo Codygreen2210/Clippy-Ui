@@ -43,7 +43,9 @@ export default function Home() {
     }
   }
 
-  function getPos(e: React.MouseEvent) {
+  // Pointer events fire for both touch and mouse — the previous mouse-only
+  // handlers made the face cam box impossible to draw on a phone.
+  function getPos(e: React.PointerEvent) {
     const rect = canvasRef.current!.getBoundingClientRect();
     return {
       x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
@@ -51,8 +53,10 @@ export default function Home() {
     };
   }
 
-  function onMouseDown(e: React.MouseEvent) {
+  function onPointerDown(e: React.PointerEvent) {
     if (!frame) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
     const pos = getPos(e);
     if (box) {
       const bx = Math.min(box.x, box.x + box.w);
@@ -69,7 +73,8 @@ export default function Home() {
     setBox({ x: pos.x, y: pos.y, w: 0, h: 0 });
   }
 
-  function onMouseMove(e: React.MouseEvent) {
+  function onPointerMove(e: React.PointerEvent) {
+    if (!drawing && !dragging) return;
     const pos = getPos(e);
     if (drawing && box) setBox(b => b ? { ...b, w: pos.x - b.x, h: pos.y - b.y } : b);
     if (dragging && box) {
@@ -78,7 +83,13 @@ export default function Home() {
     }
   }
 
-  function onMouseUp() { setDrawing(false); setDragging(false); }
+  function onPointerUp(e: React.PointerEvent) {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setDrawing(false);
+    setDragging(false);
+  }
 
   async function handleSubmit() {
     if (!url.trim()) return;
@@ -170,13 +181,13 @@ export default function Home() {
               <div
                 ref={canvasRef}
                 className="relative w-full cursor-crosshair select-none"
-                style={{ aspectRatio: `${frameSize.w}/${frameSize.h}` }}
-                onMouseDown={onMouseDown} onMouseMove={onMouseMove}
-                onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+                style={{ aspectRatio: `${frameSize.w}/${frameSize.h}`, touchAction: 'none' }}
+                onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
               >
                 <img src={frame} alt="frame" className="w-full h-full object-cover pointer-events-none" draggable={false} />
                 {box && Math.abs(box.w) > 0.005 && Math.abs(box.h) > 0.005 && (
-                  <div className="absolute border-2 border-orange-500 bg-orange-500/15 cursor-move"
+                  <div className="absolute border-2 border-orange-500 bg-orange-500/15 cursor-move pointer-events-none"
                     style={{
                       left: `${Math.min(box.x, box.x + box.w) * 100}%`,
                       top: `${Math.min(box.y, box.y + box.h) * 100}%`,
@@ -184,7 +195,6 @@ export default function Home() {
                       height: `${Math.abs(box.h) * 100}%`,
                     }}>
                     <div className="absolute -top-5 left-0 rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">Face cam</div>
-                    <div className="absolute bottom-0 right-0 h-3 w-3 bg-orange-500 cursor-se-resize" />
                   </div>
                 )}
               </div>
