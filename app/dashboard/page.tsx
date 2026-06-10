@@ -98,7 +98,7 @@ function TranscriptPanel({
   const changed   = Math.abs(pStart - clip.start) > 0.3 || Math.abs(pEnd - clip.end) > 0.3;
   const dur       = pEnd - pStart;
   const tooShort  = dur < 5;
-  const tooLong   = dur > 180;
+  const tooLong   = dur > 420; // matches worker MAX_CLIP_SECONDS (7 min ceiling)
 
   return (
     <div className="rounded-lg border border-white/5 bg-black/30 p-3">
@@ -108,7 +108,7 @@ function TranscriptPanel({
           Tap words to adjust clip
         </span>
         <span className={`text-[11px] font-medium tabular-nums ${
-          tooShort ? 'text-red-400' : tooLong ? 'text-yellow-400' : 'text-orange-400'
+          tooShort ? 'text-red-400' : tooLong ? 'text-yellow-400' : changed ? 'text-orange-400' : 'text-white/50'
         }`}>
           {fmt(pStart)} → {fmt(pEnd)} · {Math.round(dur)}s
         </span>
@@ -165,7 +165,7 @@ function TranscriptPanel({
           className="mt-3 w-full rounded-md bg-orange-500 py-2 text-xs font-bold text-white hover:bg-orange-400 disabled:opacity-40 active:scale-[0.98]"
         >
           {tooShort  ? 'Too short (min 5s)' :
-           tooLong   ? 'Too long (max 180s)' :
+           tooLong   ? 'Too long (max 7 min)' :
            `↩ Re-render · ${Math.round(dur)}s`}
         </button>
       )}
