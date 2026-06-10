@@ -9,6 +9,16 @@ export default function Home() {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [maxClips, setMaxClips] = useState(3);
+
+  // Clip length presets ─ each sets minDuration/maxDuration sent to the worker
+  const PRESETS = [
+    { id: 'short',  label: 'Short',  sub: '30–90s',   minDuration:  30, maxDuration:  90 },
+    { id: 'medium', label: 'Medium', sub: '2–4 min',  minDuration: 120, maxDuration: 240 },
+    { id: 'long',   label: 'Long',   sub: '4–6 min',  minDuration: 240, maxDuration: 360 },
+  ] as const;
+  type PresetId = typeof PRESETS[number]['id'];
+  const [preset, setPreset] = useState<PresetId>('short');
+  const activePreset = PRESETS.find(p => p.id === preset)!;
   const [loading, setLoading] = useState(false);
   const [loadingFrame, setLoadingFrame] = useState(false);
   const [error, setError] = useState('');
@@ -105,7 +115,12 @@ export default function Home() {
       const res = await fetch('/api/job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), options: { maxClips, faceCamBox } }),
+        body: JSON.stringify({ url: url.trim(), options: {
+          maxClips,
+          faceCamBox,
+          minDuration: activePreset.minDuration,
+          maxDuration: activePreset.maxDuration,
+        } }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start job');
@@ -201,7 +216,35 @@ export default function Home() {
             </div>
           )}
 
-          {/* Settings row */}
+          {/* Clip length presets */}
+          <div className="mb-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="mb-2 text-xs text-white/40">Clip length</div>
+            <div className="grid grid-cols-3 gap-2">
+              {PRESETS.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setPreset(p.id);
+                    // Auto-set a sensible clip count for each mode
+                    if (p.id === 'short')  setMaxClips(3);
+                    if (p.id === 'medium') setMaxClips(4);
+                    if (p.id === 'long')   setMaxClips(4);
+                  }}
+                  className={[
+                    'rounded-lg border py-2 text-center transition-colors',
+                    preset === p.id
+                      ? 'border-orange-500/60 bg-orange-500/15 text-orange-400'
+                      : 'border-white/10 bg-white/5 text-white/50 hover:text-white/70',
+                  ].join(' ')}
+                >
+                  <div className="text-xs font-semibold">{p.label}</div>
+                  <div className="text-[10px] text-white/35">{p.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Clip count */}
           <div className="mb-3 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
             <span className="text-xs text-white/40 shrink-0">Clips:</span>
             <input type="range" min={1} max={5} value={maxClips}
